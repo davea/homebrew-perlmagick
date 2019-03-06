@@ -60,6 +60,12 @@ class Perlmagick < Formula
     system "./configure", *args
     system "make", "install"
   end
+  
+  def caveats; <<~EOS
+    For full Perl support you may need to adjust your PERL5LIB variable:
+      export PERL5LIB="#{HOMEBREW_PREFIX}/lib/perl5/site_perl":$PERL5LIB
+  EOS
+  end
 
   test do
     assert_match "PNG", shell_output("#{bin}/identify #{test_fixtures("test.png")}")
