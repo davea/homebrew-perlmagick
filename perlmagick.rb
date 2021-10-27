@@ -1,14 +1,13 @@
 class Perlmagick < Formula
   desc "Tools and libraries to manipulate images in many formats. This is just the original imagemagick formula with Perl support enabled."
-  homepage "https://www.imagemagick.org/"
-  url "https://dl.bintray.com/homebrew/mirror/ImageMagick-7.0.10-34.tar.xz"
-  mirror "https://www.imagemagick.org/download/releases/ImageMagick-7.0.10-34.tar.xz"
-  sha256 "d35e02bab707611fa28f13244a0d91e251a9a8d6a4a8de405738f5ead49a06aa"
+  homepage "https://imagemagick.org/index.php"
+  url "https://www.imagemagick.org/download/releases/ImageMagick-7.1.0-11.tar.xz"
+  sha256 "d2658645e4e7bcb02e634a00f47183fe85d23c2cbd7b98731639a542d53a6e06"
   license "ImageMagick"
-  head "https://github.com/ImageMagick/ImageMagick.git"
+  head "https://github.com/ImageMagick/ImageMagick.git", branch: "main"
 
   livecheck do
-    url "https://www.imagemagick.org/download/"
+    url "https://download.imagemagick.org/ImageMagick/download/"
     regex(/href=.*?ImageMagick[._-]v?(\d+(?:\.\d+)+-\d+)\.t/i)
   end
 
@@ -33,43 +32,49 @@ class Perlmagick < Formula
   uses_from_macos "libxml2"
   uses_from_macos "zlib"
 
+  on_linux do
+    depends_on "libx11"
+  end
+
   skip_clean :la
 
   def install
     # Avoid references to shim
     inreplace Dir["**/*-config.in"], "@PKG_CONFIG@", Formula["pkg-config"].opt_bin/"pkg-config"
 
-    args = %W[
-      --enable-osx-universal-binary=no
-      --prefix=#{prefix}
-      --disable-dependency-tracking
-      --disable-silent-rules
-      --disable-opencl
-      --enable-shared
-      --enable-static
-      --with-freetype=yes
-      --with-modules
-      --with-openjp2
-      --with-openexr
-      --with-webp=yes
-      --with-heic=yes
-      --with-perl
-      --with-perl-options='PREFIX=#{prefix}'
-      --with-gslib
-      --with-gs-font-dir=#{HOMEBREW_PREFIX}/share/ghostscript/fonts
-      --with-lqr
-      --without-fftw
-      --without-pango
-      --without-x
-      --without-wmf
-      --enable-openmp
-      ac_cv_prog_c_openmp=-Xpreprocessor\ -fopenmp
-      ac_cv_prog_cxx_openmp=-Xpreprocessor\ -fopenmp
-      LDFLAGS=-lomp\ -lz
+    args = [
+      "--enable-osx-universal-binary=no",
+      "--prefix=#{prefix}",
+      "--disable-dependency-tracking",
+      "--disable-silent-rules",
+      "--disable-opencl",
+      "--enable-shared",
+      "--enable-static",
+      "--with-freetype=yes",
+      "--with-gvc=no",
+      "--with-modules",
+      "--with-openjp2",
+      "--with-openexr",
+      "--with-webp=yes",
+      "--with-heic=yes",
+      "--with-perl",
+      "--with-perl-options='PREFIX=#{prefix}'",
+      "--with-gslib",
+      "--with-gs-font-dir=#{HOMEBREW_PREFIX}/share/ghostscript/fonts",
+      "--with-lqr",
+      "--without-fftw",
+      "--without-pango",
+      "--without-wmf",
+      "--enable-openmp",
+      "ac_cv_prog_c_openmp=-Xpreprocessor -fopenmp",
+      "ac_cv_prog_cxx_openmp=-Xpreprocessor -fopenmp",
+      "LDFLAGS=-lomp -lz",
     ]
 
+    args << "--without-x" if OS.mac?
+
     # versioned stuff in main tree is pointless for us
-    inreplace "configure", "${PACKAGE_NAME}-${PACKAGE_VERSION}", "${PACKAGE_NAME}"
+    inreplace "configure", "${PACKAGE_NAME}-${PACKAGE_BASE_VERSION}", "${PACKAGE_NAME}"
     system "./configure", *args
     system "make", "install"
   end
