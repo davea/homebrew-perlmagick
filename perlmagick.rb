@@ -1,24 +1,24 @@
 class Perlmagick < Formula
   desc "Tools and libraries to manipulate images in many formats. This is just the original imagemagick formula with Perl support enabled."
   homepage "https://imagemagick.org/index.php"
-  url "https://www.imagemagick.org/download/releases/ImageMagick-7.1.0-11.tar.xz"
-  sha256 "d2658645e4e7bcb02e634a00f47183fe85d23c2cbd7b98731639a542d53a6e06"
+  url "https://imagemagick.org/archive/releases/ImageMagick-7.1.0-49.tar.xz"
+  sha256 "ff55aabc66bb1e110979acc526287185188541ea265e796c2e4b1cb2d81b4ecf"
   license "ImageMagick"
   head "https://github.com/ImageMagick/ImageMagick.git", branch: "main"
 
   livecheck do
-    url "https://download.imagemagick.org/ImageMagick/download/"
+    url "https://imagemagick.org/archive/"
     regex(/href=.*?ImageMagick[._-]v?(\d+(?:\.\d+)+-\d+)\.t/i)
   end
 
   depends_on "pkg-config" => :build
   depends_on "freetype"
   depends_on "ghostscript"
-  depends_on "jpeg"
+  depends_on "jpeg-turbo"
   depends_on "libheif"
   depends_on "liblqr"
-  depends_on "libomp"
   depends_on "libpng"
+  depends_on "libraw"
   depends_on "libtiff"
   depends_on "libtool"
   depends_on "little-cms2"
@@ -31,6 +31,10 @@ class Perlmagick < Formula
   uses_from_macos "bzip2"
   uses_from_macos "libxml2"
   uses_from_macos "zlib"
+
+  on_macos do
+    depends_on "libomp"
+  end
 
   on_linux do
     depends_on "libx11"
@@ -59,6 +63,7 @@ class Perlmagick < Formula
       "--with-heic=yes",
       "--with-perl",
       "--with-perl-options='PREFIX=#{prefix}'",
+      "--with-raw=yes",
       "--with-gslib",
       "--with-gs-font-dir=#{HOMEBREW_PREFIX}/share/ghostscript/fonts",
       "--with-lqr",
@@ -66,12 +71,16 @@ class Perlmagick < Formula
       "--without-pango",
       "--without-wmf",
       "--enable-openmp",
-      "ac_cv_prog_c_openmp=-Xpreprocessor -fopenmp",
-      "ac_cv_prog_cxx_openmp=-Xpreprocessor -fopenmp",
-      "LDFLAGS=-lomp -lz",
     ]
-
-    args << "--without-x" if OS.mac?
+    if OS.mac?
+      args += [
+        "--without-x",
+        # Work around "checking for clang option to support OpenMP... unsupported"
+        "ac_cv_prog_c_openmp=-Xpreprocessor -fopenmp",
+        "ac_cv_prog_cxx_openmp=-Xpreprocessor -fopenmp",
+        "LDFLAGS=-lomp -lz",
+      ]
+    end
 
     # versioned stuff in main tree is pointless for us
     inreplace "configure", "${PACKAGE_NAME}-${PACKAGE_BASE_VERSION}", "${PACKAGE_NAME}"
@@ -87,11 +96,18 @@ class Perlmagick < Formula
 
   test do
     assert_match "PNG", shell_output("#{bin}/identify #{test_fixtures("test.png")}")
+
     # Check support for recommended features and delegates.
-    features = shell_output("#{bin}/convert -version")
-    %w[Modules freetype jpeg png tiff].each do |feature|
+    features = shell_output("#{bin}/magick -version")
+    %w[Modules freetype heic jpeg png raw tiff].each do |feature|
       assert_match feature, features
     end
-    assert_match "Helvetica", shell_output("#{bin}/identify -list font")
+
+    # Check support for a few specific image formats, mostly to ensure LibRaw linked correctly.
+    formats = shell_output("#{bin}/magick -list format")
+    ["AVIF  HEIC      rw+", "ARW  DNG       r--", "DNG  DNG       r--"].each do |format|
+      assert_match format, formats
+    end
+    assert_match "Helvetica", shell_output("#{bin}/magick -list font")
   end
 end
