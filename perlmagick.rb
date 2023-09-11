@@ -1,8 +1,8 @@
 class Perlmagick < Formula
   desc "Tools and libraries to manipulate images in many formats. This is just the original imagemagick formula with Perl support enabled."
   homepage "https://imagemagick.org/index.php"
-  url "https://imagemagick.org/archive/releases/ImageMagick-7.1.0-49.tar.xz"
-  sha256 "ff55aabc66bb1e110979acc526287185188541ea265e796c2e4b1cb2d81b4ecf"
+  url "https://imagemagick.org/archive/releases/ImageMagick-7.1.1-15.tar.xz"
+  sha256 "c8589ea233f678b0474daaba19a55ce783b52b25495fb5ba93ac1d377f65bb2f"
   license "ImageMagick"
   head "https://github.com/ImageMagick/ImageMagick.git", branch: "main"
 
@@ -45,6 +45,8 @@ class Perlmagick < Formula
   def install
     # Avoid references to shim
     inreplace Dir["**/*-config.in"], "@PKG_CONFIG@", Formula["pkg-config"].opt_bin/"pkg-config"
+    # versioned stuff in main tree is pointless for us
+    inreplace "configure", "${PACKAGE_NAME}-${PACKAGE_BASE_VERSION}", "${PACKAGE_NAME}"
 
     args = [
       "--enable-osx-universal-binary=no",
@@ -67,6 +69,7 @@ class Perlmagick < Formula
       "--with-gslib",
       "--with-gs-font-dir=#{HOMEBREW_PREFIX}/share/ghostscript/fonts",
       "--with-lqr",
+      "--without-djvu",
       "--without-fftw",
       "--without-pango",
       "--without-wmf",
@@ -82,9 +85,7 @@ class Perlmagick < Formula
       ]
     end
 
-    # versioned stuff in main tree is pointless for us
-    inreplace "configure", "${PACKAGE_NAME}-${PACKAGE_BASE_VERSION}", "${PACKAGE_NAME}"
-    system "./configure", *args
+    system "./configure", *std_configure_args, *args
     system "make", "install"
   end
 
