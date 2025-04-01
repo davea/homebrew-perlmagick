@@ -1,8 +1,8 @@
 class Perlmagick < Formula
   desc "Tools and libraries to manipulate images in many formats. This is just the original imagemagick formula with Perl support enabled."
   homepage "https://imagemagick.org/index.php"
-  url "https://imagemagick.org/archive/releases/ImageMagick-7.1.1-15.tar.xz"
-  sha256 "c8589ea233f678b0474daaba19a55ce783b52b25495fb5ba93ac1d377f65bb2f"
+  url "https://imagemagick.org/archive/releases/ImageMagick-7.1.1-38.tar.xz"
+  sha256 "48de548d4977fc226c982ca03b9d6ad8001b47d8dc142b49fdca69333bc4ad82"
   license "ImageMagick"
   head "https://github.com/ImageMagick/ImageMagick.git", branch: "main"
 
@@ -12,9 +12,11 @@ class Perlmagick < Formula
   end
 
   depends_on "pkg-config" => :build
+  depends_on "fontconfig"
   depends_on "freetype"
   depends_on "ghostscript"
   depends_on "jpeg-turbo"
+  depends_on "jpeg-xl"
   depends_on "libheif"
   depends_on "liblqr"
   depends_on "libpng"
@@ -33,6 +35,9 @@ class Perlmagick < Formula
   uses_from_macos "zlib"
 
   on_macos do
+    depends_on "gettext"
+    depends_on "glib"
+    depends_on "imath"
     depends_on "libomp"
   end
 
