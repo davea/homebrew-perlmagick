@@ -26,7 +26,7 @@ class Perlmagick < Formula
   depends_on "little-cms2"
   depends_on "openexr"
   depends_on "openjpeg"
-  depends_on "perl"
+  depends_on "davea/perlmagick/perl"
   depends_on "webp"
   depends_on "xz"
 
@@ -69,7 +69,6 @@ class Perlmagick < Formula
       "--with-webp=yes",
       "--with-heic=yes",
       "--with-perl",
-      "--with-perl-options='PREFIX=#{prefix}'",
       "--with-raw=yes",
       "--with-gslib",
       "--with-gs-font-dir=#{HOMEBREW_PREFIX}/share/ghostscript/fonts",
