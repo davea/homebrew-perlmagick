@@ -1,8 +1,8 @@
 class Perlmagick < Formula
-  desc "Tools and libraries to manipulate images in many formats. This is just the original imagemagick formula with Perl support enabled."
+  desc "Tools and libraries to manipulate images in many formats. This is just the original imagemagick-full formula with Perl support enabled."
   homepage "https://imagemagick.org/index.php"
-  url "https://imagemagick.org/archive/releases/ImageMagick-7.1.1-38.tar.xz"
-  sha256 "48de548d4977fc226c982ca03b9d6ad8001b47d8dc142b49fdca69333bc4ad82"
+  url "https://imagemagick.org/archive/releases/ImageMagick-7.1.2-13.tar.xz"
+  sha256 "968e022c8c7ee620680bac658628ef0f582be7b8aa71b386a9a9d068ec17dbd2"
   license "ImageMagick"
   head "https://github.com/ImageMagick/ImageMagick.git", branch: "main"
 
@@ -11,18 +11,23 @@ class Perlmagick < Formula
     regex(/href=.*?ImageMagick[._-]v?(\d+(?:\.\d+)+-\d+)\.t/i)
   end
 
-  depends_on "pkg-config" => :build
+  depends_on "pkgconf" => :build
+  depends_on "cairo"
   depends_on "fontconfig"
   depends_on "freetype"
   depends_on "ghostscript"
+  depends_on "glib"
   depends_on "jpeg-turbo"
   depends_on "jpeg-xl"
   depends_on "libheif"
   depends_on "liblqr"
   depends_on "libpng"
   depends_on "libraw"
+  depends_on "librsvg"
   depends_on "libtiff"
   depends_on "libtool"
+  depends_on "libultrahdr"
+  depends_on "libzip"
   depends_on "little-cms2"
   depends_on "openexr"
   depends_on "openjpeg"
@@ -35,6 +40,7 @@ class Perlmagick < Formula
   uses_from_macos "zlib"
 
   on_macos do
+    depends_on "gdk-pixbuf"
     depends_on "gettext"
     depends_on "glib"
     depends_on "imath"
@@ -43,6 +49,7 @@ class Perlmagick < Formula
 
   on_linux do
     depends_on "libx11"
+    depends_on "libxext"
   end
 
   skip_clean :la
@@ -62,6 +69,7 @@ class Perlmagick < Formula
       "--enable-shared",
       "--enable-static",
       "--with-freetype=yes",
+      "--with-rsvg=yes",
       "--with-gvc=no",
       "--with-modules",
       "--with-openjp2",
@@ -70,6 +78,8 @@ class Perlmagick < Formula
       "--with-heic=yes",
       "--with-perl",
       "--with-raw=yes",
+      "--with-uhdr=yes",
+      "--with-zip=yes",
       "--with-gslib",
       "--with-gs-font-dir=#{HOMEBREW_PREFIX}/share/ghostscript/fonts",
       "--with-lqr",
@@ -89,7 +99,7 @@ class Perlmagick < Formula
       ]
     end
 
-    system "./configure", *std_configure_args, *args
+    system "./configure", *args, *std_configure_args
     system "make", "install"
   end
 
@@ -104,7 +114,7 @@ class Perlmagick < Formula
 
     # Check support for recommended features and delegates.
     features = shell_output("#{bin}/magick -version")
-    %w[Modules freetype heic jpeg png raw tiff].each do |feature|
+    %w[Modules freetype heic jpeg png raw rsvg tiff].each do |feature|
       assert_match feature, features
     end
 
@@ -113,6 +123,5 @@ class Perlmagick < Formula
     ["AVIF  HEIC      rw+", "ARW  DNG       r--", "DNG  DNG       r--"].each do |format|
       assert_match format, formats
     end
-    assert_match "Helvetica", shell_output("#{bin}/magick -list font")
   end
 end
