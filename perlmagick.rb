@@ -1,14 +1,15 @@
 class Perlmagick < Formula
-  desc "Tools and libraries to manipulate images in many formats. This is just the original imagemagick-full formula with Perl support enabled."
-  homepage "https://imagemagick.org/index.php"
-  url "https://imagemagick.org/archive/releases/ImageMagick-7.1.2-13.tar.xz"
-  sha256 "968e022c8c7ee620680bac658628ef0f582be7b8aa71b386a9a9d068ec17dbd2"
+  desc "ImageMagick built with Perl support (PerlMagick)"
+  homepage "https://imagemagick.org"
+  url "https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-35/ImageMagick-7.1.2-35.7z"
+  sha256 "1d95f7d0ed11e91a3ee9e3042a8e248cb88c666dd9256ab14cc871b1f73138fd"
   license "ImageMagick"
   head "https://github.com/ImageMagick/ImageMagick.git", branch: "main"
 
   livecheck do
-    url "https://imagemagick.org/archive/"
-    regex(/href=.*?ImageMagick[._-]v?(\d+(?:\.\d+)+-\d+)\.t/i)
+    url :stable
+    regex(/^v?(\d+(?:\.\d+)+-\d+)$/i)
+    strategy :github_releases
   end
 
   depends_on "pkgconf" => :build
@@ -31,18 +32,16 @@ class Perlmagick < Formula
   depends_on "little-cms2"
   depends_on "openexr"
   depends_on "openjpeg"
-  depends_on "davea/perlmagick/perl"
+  depends_on "perl"
   depends_on "webp"
   depends_on "xz"
 
   uses_from_macos "bzip2"
   uses_from_macos "libxml2"
-  uses_from_macos "zlib"
 
   on_macos do
     depends_on "gdk-pixbuf"
     depends_on "gettext"
-    depends_on "glib"
     depends_on "imath"
     depends_on "libomp"
   end
@@ -50,20 +49,44 @@ class Perlmagick < Formula
   on_linux do
     depends_on "libx11"
     depends_on "libxext"
+    depends_on "zlib-ng-compat"
   end
+
+  conflicts_with "imagemagick", because: "both install the same ImageMagick binaries, libraries and headers"
 
   skip_clean :la
 
+  deny_network_access!
+
+  def perl
+    formula_opt_bin("perl")/"perl"
+  end
+
+  def perl_config(key)
+    Utils.safe_popen_read(perl, "-MConfig", "-e", "print $Config{#{key}}")
+  end
+
+  def perl_site_lib
+    lib/"perl5/site_perl"/File.basename(perl_config("sitelib"))
+  end
+
   def install
     # Avoid references to shim
-    inreplace Dir["**/*-config.in"], "@PKG_CONFIG@", Formula["pkg-config"].opt_bin/"pkg-config"
+    inreplace Dir["**/*-config.in"], "@PKG_CONFIG@", formula_opt_bin("pkg-config")/"pkg-config"
     # versioned stuff in main tree is pointless for us
     inreplace "configure", "${PACKAGE_NAME}-${PACKAGE_BASE_VERSION}", "${PACKAGE_NAME}"
 
+    perl_options = %W[
+      INSTALLDIRS=site
+      INSTALLSITELIB=#{perl_site_lib}
+      INSTALLSITEARCH=#{perl_site_lib}/#{perl_config("archname")}
+      INSTALLSITEMAN3DIR=#{man3}
+      NO_PERLLOCAL=1
+      NO_PACKLIST=1
+    ]
+
     args = [
       "--enable-osx-universal-binary=no",
-      "--prefix=#{prefix}",
-      "--disable-dependency-tracking",
       "--disable-silent-rules",
       "--disable-opencl",
       "--enable-shared",
@@ -76,7 +99,8 @@ class Perlmagick < Formula
       "--with-openexr",
       "--with-webp=yes",
       "--with-heic=yes",
-      "--with-perl",
+      "--with-perl=#{perl}",
+      "--with-perl-options=#{perl_options.join(" ")}",
       "--with-raw=yes",
       "--with-uhdr=yes",
       "--with-zip=yes",
@@ -104,8 +128,8 @@ class Perlmagick < Formula
   end
 
   def caveats; <<~EOS
-    For full Perl support you may need to adjust your PERL5LIB variable:
-      export PERL5LIB="#{HOMEBREW_PREFIX}/lib/perl5/site_perl":$PERL5LIB
+    This module is built for Homebrew's perl (#{perl}), it probably cannot be
+    loaded by other perls.
   EOS
   end
 
@@ -123,5 +147,21 @@ class Perlmagick < Formula
     ["AVIF  HEIC      rw+", "ARW  DNG       r--", "DNG  DNG       r--"].each do |format|
       assert_match format, formats
     end
+
+    # Check that PerlMagick can be loaded and can read and write an image.
+    (testpath/"test.pl").write <<~PERL
+      use strict;
+      use warnings;
+      use Image::Magick;
+
+      my $image = Image::Magick->new;
+      my $error = $image->Read($ARGV[0]);
+      die $error if $error;
+      $error = $image->Write("test.jpg");
+      die $error if $error;
+      print join("x", $image->Get("width", "height")), "\n";
+    PERL
+    assert_match(/^\d+x\d+$/, shell_output("#{perl} -Mlib=#{perl_site_lib} test.pl #{test_fixtures("test.png")}"))
+    assert_path_exists testpath/"test.jpg"
   end
 end

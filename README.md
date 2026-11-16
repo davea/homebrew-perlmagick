@@ -7,8 +7,11 @@ This tap provides a new `perlmagick` formula that builds Imagemagick with Perl s
 ## Usage
 
 ```bash
-$ brew tap davea/perlmagick
-$ brew install perlmagick
+$ brew install davea/perlmagick/perlmagick
+```
+
+```bash
+$ $(brew --prefix)/bin/perl -MImage::Magick -e 'print "ok\n"'
 ```
 
 ## Caveats
